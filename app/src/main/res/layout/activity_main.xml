@@ -16,8 +16,7 @@
         android:layout_height="wrap_content"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="54dp"
-        android:id="@+id/receive_button"
-        android:onClick="getBtData"/>
+        android:id="@+id/receive_button"/>
 
     <TextView
         android:layout_width="wrap_content"
@@ -26,4 +25,10 @@
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="170dp" />
+
+    <FrameLayout
+        android:id="@+id/sample_content_fragment"
+        android:layout_weight="2"
+        android:layout_width="match_parent"
+        android:layout_height="0px" />
 </RelativeLayout>
