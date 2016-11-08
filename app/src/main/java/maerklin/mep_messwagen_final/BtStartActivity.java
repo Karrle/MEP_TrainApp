@@ -13,7 +13,9 @@ import android.os.Message;
 
 import android.os.Bundle;
 
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
@@ -24,6 +26,7 @@ import android.widget.Toast;
 public class BtStartActivity extends Fragment {
     // Constants
     final int REQUEST_ENABLE_BT = 1;
+    private static final int REQUEST_CONNECT_DEVICE = 2;
     // Variables
     BluetoothAdapter mBluetoothAdapter;
     BtService mBtService;
@@ -54,6 +57,12 @@ public class BtStartActivity extends Fragment {
         }
     }
 
+    @Override
+    public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
+        return inflater.inflate(R.layout.activity_main, container, false);
+    }
+
 
     @Override
     public void onActivityResult(int requestCode, int resultCode,Intent data) {
@@ -65,7 +74,13 @@ public class BtStartActivity extends Fragment {
                     // User did not enable Bluetooth or an error occurred
                     Toast.makeText(getActivity(), R.string.bt_not_enabled_leaving, Toast.LENGTH_SHORT).show();
                     getActivity().finish();
+                } break;
+
+            case REQUEST_CONNECT_DEVICE:
+                if (resultCode == Activity.RESULT_OK) {
+                    connectDevice(data);
                 }
+                break;
         }
     }
 
@@ -77,8 +92,17 @@ public class BtStartActivity extends Fragment {
     private void setupBt() {
         // Be discoverable for connecting as client
         becomeDiscoverable();
+        // Get a ListView to choose a device for the upcoming connection
+        Intent serverIntent = new Intent(getActivity(), DeviceListActivity.class);
+        startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE);
         // Start the background service and establish a connection. Data is received by mHandler
         mBtService = new BtService(getActivity(), mHandler);
+    }
+
+    private void connectDevice(Intent data) {
+        String macAddress = data.getExtras().getString(DeviceListActivity.EXTRA_DEVICE_ADDRESS);
+        BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(macAddress);
+        mBtService.connect(device);
     }
 
     // Handler for redeiving and trasmitting data
@@ -100,6 +124,31 @@ public class BtStartActivity extends Fragment {
             Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
             discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 60);
             startActivity(discoverableIntent);
+        }
+    }
+
+    // Opens a ListView to choose a device. Returns a "RESULT_OK" to onActivityResult(..), which starts the connection
+    private void chooseDevice() {
+        Intent serverIntent = new Intent(getActivity(), DeviceListActivity.class);
+        startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE);
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if (mBtService != null) {
+            mBtService.stop();
+        }
+    }
+
+    @Override
+    public void onResume() {
+            super.onResume();
+
+        if (mBtService != null) {
+            if (mBtService.getState() == BtService.STATE_NONE) {
+                mBtService.start();
+            }
         }
     }
 
